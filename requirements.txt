@@ -1,0 +1,9 @@
+chainlit==2.4.1
+google-api-python-client==2.162.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+langchain-community==0.3.18
+langchain-experimental==0.3.4
+langchain-openai==0.3.7
+langgraph==0.3.2
+python-dotenv==1.0.1

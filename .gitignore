@@ -1,0 +1,7 @@
+.env
+credentials*
+token*
+__pycache__
+test*
+.chainlit
+personal_info.json
