@@ -16,6 +16,9 @@ An AI-powered assistant that can manage your Google Calendar efficiently. This A
 - [Chainlit](https://docs.chainlit.io/) – Providing an interactive chat interface for user interaction.
 - [Google Calendar API](https://developers.google.com/calendar) – To integrate and manage Google Calendar events.
 
+## Overall workflow
+![overall workflow](images/calendar_graph.png)
+
 ## Installation & Setup
 
 ### Prerequisites
