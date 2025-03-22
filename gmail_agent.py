@@ -4,7 +4,7 @@ from typing import Annotated
 from typing import Literal
 from typing import TypedDict
 
-from cons import CALENDAR_AGENT_SYSTEM_PROMPT_PATH
+from cons import GMAIL_AGENT_SYSTEM_PROMPT_PATH
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
@@ -18,24 +18,24 @@ from langgraph.prebuilt import tools_condition
 from langgraph.types import Command
 from langgraph.types import interrupt
 from llm import model
-from tools import create_calendar_event
-from tools import delete_calendar_event
-from tools import get_next_n_calendar_events
+from tools import fetch_inbox_messages
+from tools import get_email_details
+from tools import send_email
 from utils import create_tool_node_with_fallback
 from utils import read_markdown
 _ = load_dotenv()
 
 
-class CalendarAssistantState(TypedDict):
+class GmailAssistantState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     user_info: list[dict]
 
 
-class CalendarAssistant:
+class GmailAssistant:
     def __init__(self, model):
         self.model = model
         self.__init_chatbot()
-        graph_builder = StateGraph(CalendarAssistantState)
+        graph_builder = StateGraph(GmailAssistantState)
 
         # add node
         graph_builder.add_node('chatbot', self.call_chatbot)
@@ -73,7 +73,7 @@ class CalendarAssistant:
 
         # save image of graph
         self.graph.get_graph().draw_mermaid_png(
-            output_file_path='images/calendar_graph.png',
+            output_file_path='images/gmail_graph.png',
         )
 
     def __init_chatbot(self):
@@ -81,15 +81,15 @@ class CalendarAssistant:
             [
                 (
                     'system',
-                    read_markdown(CALENDAR_AGENT_SYSTEM_PROMPT_PATH),
+                    read_markdown(GMAIL_AGENT_SYSTEM_PROMPT_PATH),
                 ),
                 ('placeholder', '{messages}'),
             ],
         )
 
-        self.safe_tools = [get_next_n_calendar_events]
+        self.safe_tools = [fetch_inbox_messages, get_email_details]
 
-        self.sensitive_tools = [delete_calendar_event, create_calendar_event]
+        self.sensitive_tools = [send_email]
 
         self.sensitive_tool_names = {t.name for t in self.sensitive_tools}
 
@@ -98,7 +98,7 @@ class CalendarAssistant:
         )
 
     def call_chatbot(
-        self, state: CalendarAssistantState,
+        self, state: GmailAssistantState,
         config: RunnableConfig,
     ):
         while True:
@@ -118,7 +118,7 @@ class CalendarAssistant:
                 break
         return {'messages': result}
 
-    def route_tools(self, state: CalendarAssistantState):
+    def route_tools(self, state: GmailAssistantState):
         next_node = tools_condition(state)
         # If no tools are invoked, return to the user
         if next_node == END:
@@ -132,7 +132,7 @@ class CalendarAssistant:
             return 'human_review'
         return 'safe'
 
-    def _fetch_user_info(self, state: CalendarAssistantState):
+    def _fetch_user_info(self, state: GmailAssistantState):
         return {
             'user_info': {
                 'name': 'Hoàng Hùng Mạnh',
@@ -180,4 +180,4 @@ class CalendarAssistant:
             return Command(goto='chatbot', update={'messages': [tool_message]})
 
 
-calendar_agent = CalendarAssistant(model)
+gmail_agent = GmailAssistant(model)

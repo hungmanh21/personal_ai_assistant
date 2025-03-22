@@ -3,11 +3,12 @@ from __future__ import annotations
 import chainlit as cl
 from dateutil import parser
 from gg_calendar_agent import calendar_agent
+from gmail_agent import gmail_agent
 from langchain.schema.runnable.config import RunnableConfig
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command
-from utils import read_personal_info
 from tools import get_credentials
+from utils import read_personal_info
 
 
 @cl.on_chat_start
@@ -17,21 +18,32 @@ async def get_credentials_from_user():
 
     if not credentials_file_path:
         res = await cl.AskActionMessage(
-            content="I need your credentials to get access to your Calendar.",
+            content='I need your credentials to get access to your Calendar.',
             actions=[
-                cl.Action(name="continue", payload={
-                          "value": "continue"}, label="✅ Continue"),
-                cl.Action(name="cancel", payload={
-                          "value": "cancel"}, label="❌ Cancel"),
+                cl.Action(
+                    name='continue', payload={
+                        'value': 'continue',
+                    }, label='✅ Continue',
+                ),
+                cl.Action(
+                    name='cancel', payload={
+                        'value': 'cancel',
+                    }, label='❌ Cancel',
+                ),
             ],
         ).send()
 
-        if res and res.get("payload", {}).get("value") == "continue":
+        if res and res.get('payload', {}).get('value') == 'continue':
             # Send a clean confirmation message
-            await cl.Message(content="✅ Thank you for your permission! How can I help you today").send()
+            await cl.Message(
+                content=(
+                    "✅ Thank you for your permission! "
+                    "How can I help you today?"
+                )
+            ).send()
             get_credentials()
         else:
-            await cl.Message(content="❌ You cancelled your request.").send()
+            await cl.Message(content='❌ You cancelled your request.').send()
 
 
 def format_time(iso_str):
@@ -72,6 +84,22 @@ def create_event_confirmation(tool_call_arg):
     )
 
 
+def creat_send_email_confirmation(tool_call_arg):
+    """Create confirmation message for sending an email."""
+    to_email = tool_call_arg['to_email']
+    subject = tool_call_arg['subject']
+    message_body = tool_call_arg['message_body']
+
+    return (
+        f'📧 **Xác nhận gửi email** 📧\n\n'
+        f'📤 **Đến:** {to_email}\n'
+        f'📨 **Chủ đề:** {subject}\n'
+        f'📝 **Nội dung:** {message_body}\n\n'
+        '👉 Nếu đồng ý, vui lòng nhập **Approve**.\n'
+        '💬 Nếu có góp ý hoặc muốn thay đổi, hãy nhập phản hồi của bạn nhé!'
+    )
+
+
 def handle_msg_confirmation(data):
     """Handle tool call confirmation messages."""
     tool_call_arg = data.value['tool_call']['args']
@@ -79,8 +107,10 @@ def handle_msg_confirmation(data):
 
     if tool_name == 'delete_calendar_event':
         return create_delete_confirmation(tool_call_arg['calendar_name'])
-    else:
+    elif tool_name == 'create_calendar_event':
         return create_event_confirmation(tool_call_arg)
+    elif tool_name == 'send_email':
+        return creat_send_email_confirmation(tool_call_arg)
 
 
 async def process_stream_data(stream_data, final_answer):
@@ -116,7 +146,7 @@ async def on_message(msg: cl.Message):
     """Main message handler for Chainlit."""
     config = {'configurable': {'thread_id': cl.context.session.id}}
     final_answer = cl.Message(content='')
-    snapshot = calendar_agent.calendar_graph.get_state(config)
+    snapshot = gmail_agent.graph.get_state(config)
 
     # If there's a pending operation waiting for input
     if snapshot.next:
@@ -126,7 +156,7 @@ async def on_message(msg: cl.Message):
             else {'action': 'feedback', 'data': msg.content}
         )
 
-        stream_data = calendar_agent.calendar_graph.stream(
+        stream_data = gmail_agent.graph.stream(
             Command(resume=action),
             config=RunnableConfig(**config),
             stream_mode=['updates', 'messages'],
@@ -135,7 +165,7 @@ async def on_message(msg: cl.Message):
 
     # Initial message flow
     else:
-        stream_data = calendar_agent.calendar_graph.stream(
+        stream_data = gmail_agent.graph.stream(
             {'messages': [HumanMessage(content=msg.content)]},
             stream_mode=['updates', 'messages'],
             config=RunnableConfig(**config),
