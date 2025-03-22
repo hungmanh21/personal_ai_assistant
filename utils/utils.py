@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
+from pathlib import Path
 from typing import Any
 from typing import Dict
 
 from dotenv import load_dotenv
-
 # Load environment variables
 load_dotenv()
 
 PERSONAL_INFO_FILE_PATH = os.getenv('PERSONAL_INFO_PATH', 'personal_info.json')
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+)
 
 
 def read_personal_info() -> Dict[str, Any]:
@@ -42,14 +49,25 @@ def save_personal_info(key: str, value: Any) -> None:
     except (FileNotFoundError, json.JSONDecodeError):
         data = {}
 
-    print('data in file')
-    print(data)
-    print('------')
+    if isinstance(value, Path):
+        value = str(value)  # Convert WindowsPath to string
 
-    if data.get(key) == value:
+    if (
+        isinstance(value, str)
+        and (os.path.sep in value or value.startswith(("/", "\\")))
+    ):
+        processed_value = os.path.basename(value)  # Extract only file name
+    else:
+        processed_value = value
+
+    if data.get(key) == processed_value:
+        print(f'No update needed for key: {key}')
         return  # No update needed
+
     # Update the dictionary with the new key-value pair
-    data[key] = value
+    data[key] = processed_value
+
+    logging.info(f'Updated key: {key}, value: {processed_value}')
 
     # Save the updated data back to the file
     with open(PERSONAL_INFO_FILE_PATH, 'w', encoding='utf-8') as file:
