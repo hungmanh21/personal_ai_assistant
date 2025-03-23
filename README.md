@@ -1,13 +1,18 @@
-# AI Calendar Agent
+# 🤖 AI Calendar & Email Agent  
 
-An AI-powered assistant that can manage your Google Calendar efficiently. This AI agent can read events, create new ones, and delete existing ones while ensuring human confirmation for critical actions.
+An AI-powered assistant that efficiently manages your **Google Calendar** and **Gmail**. This AI agent can **fetch emails, send emails, read events, create new ones, and delete calendar events**, all while ensuring **human confirmation** for critical actions.  
 
-## Features
+## ✨ Features  
 
-- 📅 **Read Google Calendar Events** – Fetch and display your scheduled events.
-- ✍️ **Create Events** – Add new events to your Google Calendar with AI assistance.
-- ❌ **Delete Events** – Remove events from your calendar upon request.
-- ✅ **Human Confirmation** – Before creating or deleting an event, the AI seeks user confirmation to prevent unintended modifications.
+### 📅 **Google Calendar Management**  
+- 🔍 **Read Events** – Fetch and display your scheduled calendar events.  
+- ✍️ **Create Events** – Add new events to your Google Calendar with AI assistance.  
+- ❌ **Delete Events** – Remove events from your calendar upon request.  
+- ✅ **Human Confirmation** – Before creating or deleting an event, the AI seeks user confirmation to prevent unintended modifications.  
+
+### 📧 **Gmail Integration**  
+- 📥 **Fetch Emails** – Retrieve and summarize your latest emails for quick review.  
+- ✉️ **Send Emails** – Compose and send emails with AI assistance, requiring human confirmation before sending.  
 
 ## Technologies Used
 
@@ -17,7 +22,8 @@ An AI-powered assistant that can manage your Google Calendar efficiently. This A
 - [Google Calendar API](https://developers.google.com/calendar) – To integrate and manage Google Calendar events.
 
 ## Overall workflow
-![overall workflow](images/calendar_graph.png)
+![overall workflow](images/supervisors.png)
+
 
 ## Installation & Setup
 
