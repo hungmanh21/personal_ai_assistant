@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import chainlit as cl
 from dateutil import parser
-from gg_calendar_agent import calendar_agent
-from gmail_agent import gmail_agent
+from graph import ai_assistant
 from langchain.schema.runnable.config import RunnableConfig
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command
@@ -37,9 +36,9 @@ async def get_credentials_from_user():
             # Send a clean confirmation message
             await cl.Message(
                 content=(
-                    "✅ Thank you for your permission! "
-                    "How can I help you today?"
-                )
+                    '✅ Thank you for your permission! '
+                    'How can I help you today?'
+                ),
             ).send()
             get_credentials()
         else:
@@ -115,7 +114,7 @@ def handle_msg_confirmation(data):
 
 async def process_stream_data(stream_data, final_answer):
     """Process stream data and update final answer."""
-    for stream_mode, data in stream_data:
+    for node, stream_mode, data in stream_data:
         if stream_mode == 'messages':
             msg, metadata = data
             if (
@@ -146,7 +145,7 @@ async def on_message(msg: cl.Message):
     """Main message handler for Chainlit."""
     config = {'configurable': {'thread_id': cl.context.session.id}}
     final_answer = cl.Message(content='')
-    snapshot = gmail_agent.graph.get_state(config)
+    snapshot = ai_assistant.graph.get_state(config)
 
     # If there's a pending operation waiting for input
     if snapshot.next:
@@ -156,18 +155,20 @@ async def on_message(msg: cl.Message):
             else {'action': 'feedback', 'data': msg.content}
         )
 
-        stream_data = gmail_agent.graph.stream(
+        stream_data = ai_assistant.graph.stream(
             Command(resume=action),
             config=RunnableConfig(**config),
             stream_mode=['updates', 'messages'],
+            subgraphs=True,
         )
         await process_stream_data(stream_data, final_answer)
 
     # Initial message flow
     else:
-        stream_data = gmail_agent.graph.stream(
+        stream_data = ai_assistant.graph.stream(
             {'messages': [HumanMessage(content=msg.content)]},
             stream_mode=['updates', 'messages'],
             config=RunnableConfig(**config),
+            subgraphs=True,
         )
         await process_stream_data(stream_data, final_answer)

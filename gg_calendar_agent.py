@@ -68,7 +68,7 @@ class CalendarAssistant:
 
         memory = MemorySaver()
         self.graph = graph_builder.compile(
-            checkpointer=memory,
+            # checkpointer=memory,
         )
 
         # save image of graph

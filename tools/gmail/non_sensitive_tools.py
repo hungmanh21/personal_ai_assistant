@@ -63,7 +63,7 @@ def fetch_inbox_messages(
 
     if not messages:
         return 'No messages found in the specified time range.'
-    email_list = ['📩 **Inbox Messages**', '=' * 60]
+    email_list = ['📩 **Inbox Emails**\n']
     for msg in messages:
         msg_id = msg['id']
         message = service.users().messages().get(
@@ -83,10 +83,10 @@ def fetch_inbox_messages(
         )
 
         email_list.append(
-            f'📧 Message ID: {msg_id}\nFrom: {sender}\nSubject: {subject}\n'
-            f"{'-' * 50}",
+            f'📧 Email ID: {msg_id}\nFrom: {sender}\nSubject: {subject}',
         )
-    return '\n'.join(email_list)
+    result = '\n'.join(email_list)
+    return result
 
 
 @tool
