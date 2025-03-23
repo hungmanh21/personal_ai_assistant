@@ -24,6 +24,20 @@ An AI-powered assistant that efficiently manages your **Google Calendar** and **
 ## Overall workflow
 ![overall workflow](images/supervisors.png)
 
+## Demo videos
+
+### Get credentials from user
+https://github.com/user-attachments/assets/dfd9508d-724f-404d-8684-ac977e5c5ced
+
+### Calendar agent demo
+**Task** : Retrieve daily events, remove existing event, and replace them with new event.
+
+https://github.com/user-attachments/assets/0534b916-c1ca-4a70-9b17-0fca6c673a09
+
+### Gmail agent demo
+**Task** : Retrieve new emails received during the day, review the details of a specific email, and forward it to another recipient.
+
+https://github.com/user-attachments/assets/dfd9508d-724f-404d-8684-ac977e5c5ced
 
 ## Installation & Setup
 
