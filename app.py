@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import chainlit as cl
 from dateutil import parser
-from gg_calendar_agent import calendar_agent
-from gmail_agent import gmail_agent
+from graph import ai_assistant
 from langchain.schema.runnable.config import RunnableConfig
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command
@@ -18,7 +17,7 @@ async def get_credentials_from_user():
 
     if not credentials_file_path:
         res = await cl.AskActionMessage(
-            content='I need your credentials to get access to your Calendar.',
+            content='I need your credentials to get access to your Calendar and Gmail.',
             actions=[
                 cl.Action(
                     name='continue', payload={
@@ -37,9 +36,9 @@ async def get_credentials_from_user():
             # Send a clean confirmation message
             await cl.Message(
                 content=(
-                    "✅ Thank you for your permission! "
-                    "How can I help you today?"
-                )
+                    '✅ Thank you for your permission! '
+                    'How can I help you today?'
+                ),
             ).send()
             get_credentials()
         else:
@@ -54,11 +53,11 @@ def format_time(iso_str):
 def create_delete_confirmation(calendar_name):
     """Create confirmation message for deleting a calendar event."""
     return (
-        f'⚠️ **Xác nhận xoá sự kiện** ⚠️\n\n'
-        f'Bạn có chắc chắn muốn xóa sự kiện này khỏi lịch **{calendar_name}** '
-        'không? 🗓️❌\n\n'
-        '👉 Nếu đồng ý, vui lòng nhập **Approve**.\n'
-        '💬 Nếu có góp ý hoặc muốn thay đổi, hãy nhập phản hồi của bạn nhé!'
+        f'⚠️ **Confirm Deletion of Event** ⚠️\n\n'
+        f'Are you sure you want to delete this event from the **{calendar_name}** '
+        'calendar? 🗓️❌\n\n'
+        '👉 If you agree, please enter **Approve**.\n'
+        '💬 If you have any feedback or want to make changes, please enter your response!'
     )
 
 
@@ -73,14 +72,14 @@ def create_event_confirmation(tool_call_arg):
     description = tool_call_arg['description']
 
     return (
-        f'🎉 **Sự kiện mới của bạn đã sẵn sàng!** 🎉\n\n'
-        f'🗓️ **Lịch:** {calendar_name}\n'
-        f'📌 **Tiêu đề:** {title}\n'
-        f'📍 **Địa điểm:** {location}\n'
-        f'🕒 **Thời gian:** {start_time} → {end_time}\n'
-        f'📝 **Mô tả:** {description}\n\n'
-        '✅ Nếu mọi thứ đều ổn, vui lòng nhập **Approve**.\n'
-        '✏️ Nếu muốn chỉnh sửa, hãy nhập góp ý của bạn nhé! 😊'
+        f'🎉 **Your new event is ready!** 🎉\n\n'
+        f'🗓️ **Calendar:** {calendar_name}\n'
+        f'📌 **Title:** {title}\n'
+        f'📍 **Location:** {location}\n'
+        f'🕒 **Time:** {start_time} → {end_time}\n'
+        f'📝 **Description:** {description}\n\n'
+        '✅ If everything looks good, please enter **Approve**.\n'
+        '✏️ If you want to edit, please enter your feedback! 😊'
     )
 
 
@@ -91,12 +90,12 @@ def creat_send_email_confirmation(tool_call_arg):
     message_body = tool_call_arg['message_body']
 
     return (
-        f'📧 **Xác nhận gửi email** 📧\n\n'
-        f'📤 **Đến:** {to_email}\n'
-        f'📨 **Chủ đề:** {subject}\n'
-        f'📝 **Nội dung:** {message_body}\n\n'
-        '👉 Nếu đồng ý, vui lòng nhập **Approve**.\n'
-        '💬 Nếu có góp ý hoặc muốn thay đổi, hãy nhập phản hồi của bạn nhé!'
+        f'📧 **Confirm Sending Email** 📧\n\n'
+        f'📤 **To:** {to_email}\n'
+        f'📨 **Subject:** {subject}\n'
+        f'📝 **Message:** {message_body}\n\n'
+        '👉 If you agree, please enter **Approve**.\n'
+        '💬 If you have any feedback or want to make changes, please enter your response!'
     )
 
 
@@ -115,7 +114,7 @@ def handle_msg_confirmation(data):
 
 async def process_stream_data(stream_data, final_answer):
     """Process stream data and update final answer."""
-    for stream_mode, data in stream_data:
+    for node, stream_mode, data in stream_data:
         if stream_mode == 'messages':
             msg, metadata = data
             if (
@@ -146,7 +145,7 @@ async def on_message(msg: cl.Message):
     """Main message handler for Chainlit."""
     config = {'configurable': {'thread_id': cl.context.session.id}}
     final_answer = cl.Message(content='')
-    snapshot = gmail_agent.graph.get_state(config)
+    snapshot = ai_assistant.graph.get_state(config)
 
     # If there's a pending operation waiting for input
     if snapshot.next:
@@ -156,18 +155,20 @@ async def on_message(msg: cl.Message):
             else {'action': 'feedback', 'data': msg.content}
         )
 
-        stream_data = gmail_agent.graph.stream(
+        stream_data = ai_assistant.graph.stream(
             Command(resume=action),
             config=RunnableConfig(**config),
             stream_mode=['updates', 'messages'],
+            subgraphs=True,
         )
         await process_stream_data(stream_data, final_answer)
 
     # Initial message flow
     else:
-        stream_data = gmail_agent.graph.stream(
+        stream_data = ai_assistant.graph.stream(
             {'messages': [HumanMessage(content=msg.content)]},
             stream_mode=['updates', 'messages'],
             config=RunnableConfig(**config),
+            subgraphs=True,
         )
         await process_stream_data(stream_data, final_answer)
