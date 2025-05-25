@@ -7,3 +7,5 @@ langchain-experimental==0.3.4
 langchain-openai==0.3.7
 langgraph==0.3.2
 python-dotenv==1.0.1
+elevenlabs==2.1.0
+assemblyai==0.40.2
