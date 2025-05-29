@@ -120,7 +120,10 @@ async def process_stream_data(stream_data, final_answer):
             if (
                 msg.content and
                 not isinstance(msg, HumanMessage) and
-                    metadata['langgraph_node'] == 'chatbot'
+                    (
+                        metadata['langgraph_node'] ==
+                        'chatbot' or metadata['langgraph_node'] == 'normal_chatbot'
+                )
             ):
                 await final_answer.stream_token(msg.content)
 
