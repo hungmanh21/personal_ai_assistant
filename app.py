@@ -10,6 +10,18 @@ from tools import get_credentials
 from utils import read_personal_info
 
 
+@cl.password_auth_callback
+def auth_callback(username: str, password: str):
+    # Fetch the user matching username from your database
+    # and compare the hashed password with the value stored in the database
+    if (username, password) == ('admin1', 'admin'):
+        return cl.User(
+            identifier='admin', metadata={'role': 'admin', 'provider': 'credentials'},
+        )
+    else:
+        return None
+
+
 @cl.on_chat_start
 async def get_credentials_from_user():
     personal_info = read_personal_info()
@@ -117,6 +129,8 @@ async def process_stream_data(stream_data, final_answer):
     for node, stream_mode, data in stream_data:
         if stream_mode == 'messages':
             msg, metadata = data
+            print(data)
+            print('-------')
             if (
                 msg.content and
                 not isinstance(msg, HumanMessage) and
