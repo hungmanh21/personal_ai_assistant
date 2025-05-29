@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Annotated
 from typing import Literal
 
+from cons import CLASSIFY_SYSTEM_PROMPT_PATH
 from cons import SUPERVISOR_SYSTEM_PROMPT_PATH
 from gg_calendar_agent import calendar_agent
 from gmail_agent import gmail_agent
@@ -16,8 +18,23 @@ from langgraph.graph.message import add_messages
 from langgraph.graph.message import AnyMessage
 from langgraph.types import Command
 from llm import model
+from pydantic import BaseModel
+from pydantic import Field
 from typing_extensions import TypedDict
 from utils import read_markdown
+
+
+class ConversationType(str, Enum):
+    normal = 'normal'    # Does not require Gmail or Calendar
+    advanced = 'advanced'  # Requires Gmail or Calendar access
+
+
+class ClassificationOutput(BaseModel):
+    """Classifies whether the user query requires Gmail or Calendar access."""
+    classification: ConversationType = Field(
+        ...,
+        description="Either 'normal' (no tool access needed) or 'advanced' (Gmail or Calendar access needed)",
+    )
 
 
 class Router(TypedDict):
@@ -28,7 +45,7 @@ class Router(TypedDict):
 class AssistantState(MessagesState):
     next: str
     gmail_assistant_msgs: Annotated[list[AnyMessage], add_messages]
-    calendar_assistant_msgs: list[AnyMessage]
+    calendar_assistant_msgs: Annotated[list[AnyMessage], add_messages]
 
 
 class AIAssistant():
@@ -41,8 +58,11 @@ class AIAssistant():
         memory = MemorySaver()
 
         builder = StateGraph(AssistantState)
-        builder.add_edge(START, 'supervisor')
+        builder.add_edge(START, 'classifier')
+
+        builder.add_node('classifier', self.classifier_node)
         builder.add_node('supervisor', self.supervisor_node)
+        builder.add_node('normal_chatbot', self.normal_chatbot)
         builder.add_node('calendar_agent', self.calendar_agent_node)
         builder.add_node('gmail_agent', self.gmail_agent_node)
         self.graph = builder.compile(checkpointer=memory)
@@ -50,6 +70,53 @@ class AIAssistant():
         # save image of graph
         self.graph.get_graph().draw_mermaid_png(
             output_file_path='images/supervisors.png',
+        )
+
+    def classifier_node(self, state: AssistantState):
+        messages = [
+            {
+                'role': 'system',
+                'content': read_markdown(
+                    CLASSIFY_SYSTEM_PROMPT_PATH,
+                ),
+            },
+        ] + state['messages']
+        response = model.with_structured_output(
+            ClassificationOutput,
+        ).invoke(messages)
+        print(response)
+        classifier_output = None
+        if isinstance(response, ClassificationOutput):
+            classifier_output = response.classification.value
+            print(f'Classification output {classifier_output}')
+
+        if not classifier_output or classifier_output == ConversationType.normal.value:
+            return Command(goto='normal_chatbot')
+        else:
+            return Command(goto='supervisor')
+
+    def normal_chatbot(self, state: AssistantState):
+        messages = [
+            {
+                'role': 'system',
+                'content': 'You are a helpful AI Assistant. Try to answer user question as best as possible.',
+            },
+        ] + state['messages']
+        final_message = ''
+        for response in model.stream(messages):
+            final_message += response.content
+
+        # update state
+        return Command(
+            update={
+                'messages': [
+                    HumanMessage(
+                        content=final_message,
+                        name='normal_chatbot',
+                    ),
+                ],
+            },
+            goto=END,
         )
 
     def supervisor_node(
