@@ -80,15 +80,14 @@ class AIAssistant():
                     CLASSIFY_SYSTEM_PROMPT_PATH,
                 ),
             },
-        ] + state['messages']
+        ] + [state['messages'][-1]]
         response = model.with_structured_output(
             ClassificationOutput,
         ).invoke(messages)
-        print(response)
         classifier_output = None
         if isinstance(response, ClassificationOutput):
             classifier_output = response.classification.value
-            print(f'Classification output {classifier_output}')
+            print("Classification output", classifier_output)
 
         if not classifier_output or classifier_output == ConversationType.normal.value:
             return Command(goto='normal_chatbot')
