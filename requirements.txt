@@ -9,5 +9,6 @@ langchain-experimental==0.3.4
 langchain-openai==0.3.7
 langgraph==0.3.2
 langmem==0.0.27
+langmem==0.0.27
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1

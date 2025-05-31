@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 from typing import Literal
 from typing import TypedDict
@@ -8,13 +9,15 @@ from cons import GMAIL_AGENT_SYSTEM_PROMPT_PATH
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.memory import MemorySaver
+from langchain_openai import AzureOpenAIEmbeddings
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END
 from langgraph.graph import START
 from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.graph.message import AnyMessage
 from langgraph.prebuilt import tools_condition
+from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 from langgraph.types import interrupt
 from llm import model
@@ -23,6 +26,7 @@ from tools import get_email_details
 from tools import send_email
 from utils import create_tool_node_with_fallback
 from utils import read_markdown
+
 _ = load_dotenv()
 
 
@@ -66,9 +70,19 @@ class GmailAssistant:
         graph_builder.add_edge('safe_tools', 'chatbot')
         graph_builder.add_edge('sensitive_tools', 'chatbot')
 
-        memory = MemorySaver()
+        checkpointer = InMemorySaver()
+        embeddings = AzureOpenAIEmbeddings(
+            model='text-embedding-3-large',
+            dimensions=1536,
+        )
+        self.store = InMemoryStore(
+            index={
+                'embed': embeddings,
+            },
+        )
         self.graph = graph_builder.compile(
-            # checkpointer=memory,
+            checkpointer=checkpointer,
+            store=self.store,
         )
 
         # save image of graph
@@ -101,6 +115,27 @@ class GmailAssistant:
         self, state: GmailAssistantState,
         config: RunnableConfig,
     ):
+        user_id = config['configurable']['user_id']
+        items = self.store.search(
+            (user_id, 'memories'), query=state['messages'][-1].content, limit=2,
+        )
+        memories = '\n'.join(item.value['data'] for item in items)
+        memories = f'## Memories of user\n{memories}' if memories else ''
+        if memories:
+            new_first_message_with_memo = state['messages'][0].content + memories
+            state['messages'][0].content = new_first_message_with_memo
+
+        # Store new memories if the user asks the model to remember
+        last_message = state['messages'][-1]
+        if 'remember' in last_message.content.lower():
+            memory = last_message
+            print(memory)
+            self.store.put(
+                (user_id, 'memories'), str(
+                    uuid.uuid4(),
+                ), {'data': memory.content},
+            )
+
         while True:
             result = self.assistant_runnable.invoke(state)
             # If the LLM happens to return an empty response,

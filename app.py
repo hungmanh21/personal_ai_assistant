@@ -129,8 +129,6 @@ async def process_stream_data(stream_data, final_answer):
     for node, stream_mode, data in stream_data:
         if stream_mode == 'messages':
             msg, metadata = data
-            print(data)
-            print('-------')
             if (
                 msg.content and
                 not isinstance(msg, HumanMessage) and
@@ -160,7 +158,12 @@ async def process_stream_data(stream_data, final_answer):
 @cl.on_message
 async def on_message(msg: cl.Message):
     """Main message handler for Chainlit."""
-    config = {'configurable': {'thread_id': cl.context.session.id}}
+    # TODO : change the user name
+    config = {
+        'configurable': {
+            'thread_id': cl.context.session.id, 'user_id': 'hhm',
+        },
+    }
     final_answer = cl.Message(content='')
     snapshot = ai_assistant.graph.get_state(config)
 
