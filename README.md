@@ -88,3 +88,10 @@ Now, return to the chat and enjoy using the system!
 
 ## Contributing
 Feel free to fork this repository, submit issues, or contribute via pull requests!
+
+## TODOs
+
+- [x] **Memory**: Implement long-term memory so the agent can remember user notes and preferences.
+- [ ] **Voice Interaction**: Add support for voice input from the user and voice responses from the agent.
+- [ ] **LLM Observability**: Enable tracing of LLM calls for debugging and analysis.
+
