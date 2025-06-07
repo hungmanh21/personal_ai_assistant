@@ -80,15 +80,14 @@ class AIAssistant():
                     CLASSIFY_SYSTEM_PROMPT_PATH,
                 ),
             },
-        ] + state['messages']
+        ] + [state['messages'][-1]]
         response = model.with_structured_output(
             ClassificationOutput,
         ).invoke(messages)
-        print(response)
         classifier_output = None
         if isinstance(response, ClassificationOutput):
             classifier_output = response.classification.value
-            print(f'Classification output {classifier_output}')
+            print('Classification output', classifier_output)
 
         if not classifier_output or classifier_output == ConversationType.normal.value:
             return Command(goto='normal_chatbot')
@@ -135,6 +134,8 @@ class AIAssistant():
         if goto == 'FINISH':
             goto = END
 
+        print('Next node :', response)
+
         return Command(goto=goto, update={'next': goto})
 
     def calendar_agent_node(
@@ -177,10 +178,7 @@ class AIAssistant():
         }
         for events in gmail_agent.graph.stream(inputs):
             e = events
-        print('GMAIL MESSAGES')
-        for msg in e['messages']:
-            print(msg.content)
-            print('****')
+
         latest_msg = e['messages'][-1].content
         return Command(
             update={

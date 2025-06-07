@@ -10,6 +10,18 @@ from tools import get_credentials
 from utils import read_personal_info
 
 
+@cl.password_auth_callback
+def auth_callback(username: str, password: str):
+    # Fetch the user matching username from your database
+    # and compare the hashed password with the value stored in the database
+    if (username, password) == ('admin1', 'admin'):
+        return cl.User(
+            identifier='admin', metadata={'role': 'admin', 'provider': 'credentials'},
+        )
+    else:
+        return None
+
+
 @cl.on_chat_start
 async def get_credentials_from_user():
     personal_info = read_personal_info()
@@ -146,7 +158,12 @@ async def process_stream_data(stream_data, final_answer):
 @cl.on_message
 async def on_message(msg: cl.Message):
     """Main message handler for Chainlit."""
-    config = {'configurable': {'thread_id': cl.context.session.id}}
+    # TODO : change the user name
+    config = {
+        'configurable': {
+            'thread_id': cl.context.session.id, 'user_id': 'hhm',
+        },
+    }
     final_answer = cl.Message(content='')
     snapshot = ai_assistant.graph.get_state(config)
 
