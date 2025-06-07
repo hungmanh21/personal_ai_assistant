@@ -6,8 +6,9 @@ from pathlib import Path
 
 from googleapiclient.discovery import build
 from langchain_core.tools import tool
-from tools.get_credentials import get_credentials
-from utils import read_personal_info
+
+from ...shared.get_credentials import get_credentials
+from ...shared.utils import read_personal_info
 
 
 @tool
