@@ -5,8 +5,8 @@ from typing import Any
 from typing import Dict
 
 from googleapiclient.discovery import build
-from tools.get_credentials import get_credentials
-from utils import read_personal_info
+from shared.utils import read_personal_info
+from src.agent.shared.get_credentials import get_credentials
 
 
 def get_calendar_names() -> list[str]:

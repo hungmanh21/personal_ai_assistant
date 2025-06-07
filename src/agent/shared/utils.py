@@ -54,7 +54,7 @@ def save_personal_info(key: str, value: Any) -> None:
 
     if (
         isinstance(value, str)
-        and (os.path.sep in value or value.startswith(("/", "\\")))
+        and (os.path.sep in value or value.startswith(('/', '\\')))
     ):
         processed_value = os.path.basename(value)  # Extract only file name
     else:

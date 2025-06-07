@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import chainlit as cl
+from agent.main_graph import graph as ai_assistant
+from agent.shared.get_credentials import get_credentials
+from agent.shared.utils import read_personal_info
 from dateutil import parser
-from graph import ai_assistant
 from langchain.schema.runnable.config import RunnableConfig
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command
-from tools import get_credentials
-from utils import read_personal_info
 
 
 @cl.password_auth_callback
@@ -24,6 +24,7 @@ def auth_callback(username: str, password: str):
 
 @cl.on_chat_start
 async def get_credentials_from_user():
+    # TODO : check for valid too (still valid not expired)
     personal_info = read_personal_info()
     credentials_file_path = personal_info.get('token_access_path', None)
 
@@ -165,7 +166,7 @@ async def on_message(msg: cl.Message):
         },
     }
     final_answer = cl.Message(content='')
-    snapshot = ai_assistant.graph.get_state(config)
+    snapshot = ai_assistant.get_state(config)
 
     # If there's a pending operation waiting for input
     if snapshot.next:
@@ -175,7 +176,7 @@ async def on_message(msg: cl.Message):
             else {'action': 'feedback', 'data': msg.content}
         )
 
-        stream_data = ai_assistant.graph.stream(
+        stream_data = ai_assistant.stream(
             Command(resume=action),
             config=RunnableConfig(**config),
             stream_mode=['updates', 'messages'],
@@ -185,7 +186,7 @@ async def on_message(msg: cl.Message):
 
     # Initial message flow
     else:
-        stream_data = ai_assistant.graph.stream(
+        stream_data = ai_assistant.stream(
             {'messages': [HumanMessage(content=msg.content)]},
             stream_mode=['updates', 'messages'],
             config=RunnableConfig(**config),
